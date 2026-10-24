@@ -37,6 +37,23 @@ namespace KotShop.Web.Migrations.Data
                     b.HasKey("Id");
 
                     b.ToTable("Categorias");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            Nome = "Eletrônicos"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            Nome = "Informática"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            Nome = "Eletrodomésticos"
+                        });
                 });
 
             modelBuilder.Entity("KotShop.Web.Data.Models.Produto", b =>
@@ -68,6 +85,32 @@ namespace KotShop.Web.Migrations.Data
                     b.HasIndex("CategoriaId");
 
                     b.ToTable("Produtos");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            CategoriaId = 1L,
+                            Descricao = "Smartphone com 128 GB de armazenamento.",
+                            Nome = "Smartphone",
+                            Preco = 1999.90m
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            CategoriaId = 2L,
+                            Descricao = "Notebook com 16 GB de RAM e SSD de 512 GB.",
+                            Nome = "Notebook",
+                            Preco = 3499.90m
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            CategoriaId = 3L,
+                            Descricao = "Geladeira frost free de 400 litros.",
+                            Nome = "Geladeira",
+                            Preco = 2799.90m
+                        });
                 });
 
             modelBuilder.Entity("KotShop.Web.Data.Models.Produto", b =>
