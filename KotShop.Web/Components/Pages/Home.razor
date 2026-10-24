@@ -1,7 +1,59 @@
 ﻿@page "/"
 
-<PageTitle>Início</PageTitle>
+@using KotShop.Web.Data
+@using KotShop.Web.Data.ViewModels.Produto
+@using Microsoft.EntityFrameworkCore
 
-<h1>Bem-vindo(a)!</h1>
+@inject IDbContextFactory<DataContext> DbFactory
 
-Seja bem-vindo(a) ao KotShop!
+<PageTitle>Início | KotShop</PageTitle>
+
+<main>
+    <header>
+        <h1>Bem-vindo ao KotShop!</h1>
+        <p>Confira nossos produtos.</p>
+    </header>
+
+    <section aria-labelledby="titulo-produtos">
+        <h2 id="titulo-produtos">Produtos disponíveis</h2>
+
+        @if (produtos.Count == 0)
+        {
+            <p>Nenhum produto disponível.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var produto in produtos)
+                {
+                    <li>
+                        <article>
+                            <h3>@produto.Nome</h3>
+                            <p>Categoria: @produto.Categoria</p>
+                            <p>Preço: <strong>@produto.PrecoAVista</strong> no Pix (@(ProdutoViewModel.DescontoAVistaEmPorcentagem)% off)</p>
+                            <p>Ou <strong>@(ProdutoViewModel.MaximoDeParcelas)x de @produto.PrecoParcela</strong> nos cartões (Total: @produto.PrecoTotalAPrazo)</p>
+                        </article>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</main>
+
+@code {
+    private List<ProdutoViewModel> produtos = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+
+        produtos = await context.Produtos
+            .AsNoTracking()
+            .Select(p => new ProdutoViewModel(
+                p.Id,
+                p.Nome,
+                p.Preco,
+                p.Categoria.Nome))
+            .ToListAsync();
+    }
+}
