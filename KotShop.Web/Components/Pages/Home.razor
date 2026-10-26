@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 
 @using KotShop.Web.Data
 @using KotShop.Web.Data.ViewModels.Produto
@@ -6,17 +6,10 @@
 
 @inject IDbContextFactory<DataContext> DbFactory
 
-<PageTitle>Início | KotShop</PageTitle>
+<TituloPagina Nome="Início" />
 
 <main>
-    <header>
-        <h1>Bem-vindo ao KotShop!</h1>
-        <p>Confira nossos produtos.</p>
-    </header>
-
-    <section aria-labelledby="titulo-produtos">
-        <h2 id="titulo-produtos">Produtos disponíveis</h2>
-
+    <section>
         @if (produtos.Count == 0)
         {
             <p>Nenhum produto disponível.</p>
