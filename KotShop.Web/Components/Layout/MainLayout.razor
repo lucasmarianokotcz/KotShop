@@ -1,10 +1,17 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-<header class="site-header">
-    <a href="/">@AppInfo.Nome</a>
+<header class="bg-slate-900 text-white">
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5">
+        <a href="/" class="rounded text-3xl font-bold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">@AppInfo.Nome</a>
+        <nav aria-label="Navegação principal">
+            <a href="/" class="rounded-lg px-4 py-2 text-sm font-semibold hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Produtos</a>
+        </nav>
+    </div>
 </header>
 
-@Body
+<div class="mx-auto max-w-6xl px-6 py-10">
+    @Body
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     Ocorreu um erro.

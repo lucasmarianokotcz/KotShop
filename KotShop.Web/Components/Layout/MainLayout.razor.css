@@ -18,15 +18,3 @@
         right: 0.75rem;
         top: 0.5rem;
     }
-
-.site-header {
-    background-color: #17324d;
-    padding: 20px 24px;
-}
-
-    .site-header a {
-        color: white;
-        font-size: 28px;
-        font-weight: 700;
-        text-decoration: none;
-    }

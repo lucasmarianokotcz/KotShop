@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
@@ -6,18 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <ResourcePreloader />
+    <link rel="stylesheet" href="_content/Flowbite/flowbite.min.css" />
+    <link rel="stylesheet" href="@Assets["tailwind.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["site.css"]" />
     <link rel="stylesheet" href="@Assets["KotShop.Web.styles.css"]" />
     <ImportMap />
     <HeadOutlet />
 </head>
 
-<body>
+<body class="bg-slate-50 font-sans leading-normal text-slate-900">
     <Routes />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
+    <script src="_content/Flowbite/flowbite.js"></script>
 </body>
 
 </html>

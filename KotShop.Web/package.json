@@ -1,0 +1,12 @@
+{
+  "name": "kotshop-web",
+  "private": true,
+  "scripts": {
+    "css:build": "tailwindcss -i Styles/tailwind.css -o wwwroot/tailwind.css --minify",
+    "css:watch": "tailwindcss -i Styles/tailwind.css -o wwwroot/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "tailwindcss": "^4.1.18"
+  }
+}

@@ -1,3 +1,4 @@
+using Flowbite.Services;
 using KotShop.Web.Components;
 using KotShop.Web.Components.Account;
 using KotShop.Web.Data;
@@ -7,6 +8,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddFlowbite();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
