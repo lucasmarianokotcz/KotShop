@@ -11,10 +11,6 @@
 
 <main>
     <section aria-labelledby="titulo-produtos">
-        <div class="mb-8">
-            <h1 id="titulo-produtos" class="text-3xl font-bold tracking-tight text-slate-900">Produtos disponíveis</h1>
-            <p class="mt-2 text-slate-600">Confira os produtos e as condições de pagamento.</p>
-        </div>
         @if (produtos.Count == 0)
         {
             <Card>
@@ -34,9 +30,8 @@
                                     <h2 class="mt-1 text-xl font-bold text-slate-900">@produto.Nome</h2>
                                 </div>
                                 <div>
-                                    <span class="inline-block rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">@(ProdutoViewModel.DescontoAVistaEmPorcentagem)% de desconto no Pix</span>
                                     <p class="mt-3 text-3xl font-bold tracking-tight text-slate-900">@produto.PrecoAVista</p>
-                                    <p class="text-sm text-slate-600">à vista no Pix</p>
+                                    <p class="text-sm text-slate-600">à vista no Pix <span class="inline-block rounded-full bg-emerald-50 px-1 py-1 text-xs font-semibold text-emerald-800">@(ProdutoViewModel.DescontoAVistaEmPorcentagem)% off</span></p>
                                 </div>
                                 <div class="mt-auto border-t border-slate-100 pt-4 text-sm text-slate-600">
                                     <p>Ou <strong class="font-semibold text-slate-900">@(ProdutoViewModel.MaximoDeParcelas)x de @produto.PrecoParcela</strong> nos cartões</p>
