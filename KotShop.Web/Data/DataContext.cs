@@ -16,6 +16,10 @@ namespace KotShop.Web.Data
                 entity.Property(p => p.Preco)
                     .HasPrecision(18, 2);
 
+                entity.Property(p => p.UrlImagem)
+                    .HasMaxLength(1000)
+                    .IsRequired(false);
+
                 entity.HasOne(p => p.Categoria)
                     .WithMany(c => c.Produtos)
                     .HasForeignKey(p => p.CategoriaId)

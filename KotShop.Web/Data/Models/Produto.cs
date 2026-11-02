@@ -6,6 +6,7 @@
         public required string Nome { get; set; }
         public decimal Preco { get; set; }
         public required string Descricao { get; set; }
+        public string UrlImagem { get; set; } = null!;
 
         public long CategoriaId { get; set; }
         public Categoria Categoria { get; set; } = null!;

@@ -4,7 +4,8 @@
         long Id,
         string Nome,
         decimal Preco,
-        string Categoria)
+        string Categoria,
+        string? UrlImagem = null)
     {
         public const int DescontoAVistaEmPorcentagem = 10;
         public const int MaximoDeParcelas = 12;
@@ -14,5 +15,6 @@
         public string PrecoAVista => (Preco * (100 - DescontoAVistaEmPorcentagem) / 100).ToString("C2");
         public string PrecoParcela => (Preco / MaximoDeParcelas).ToString("C2");
         public string PrecoTotalAPrazo => Preco.ToString("C2");
+        public string? UrlImagem { get; set; } = UrlImagem;
     }
 }
