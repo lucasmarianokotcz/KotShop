@@ -1,0 +1,11 @@
+**/bin
+**/obj
+**/node_modules
+.git
+.vs
+.codex
+.agents
+**/*.user
+**/appsettings.*.local.json
+.env
+**/TestResults

@@ -1,0 +1,52 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=kotshop;Username=kotshop;Password=kotshop
+      Database__ApplyMigrations: "true"
+      HttpsRedirection__Enabled: "false"
+      Storage__ServiceUrl: http://localstack:4566
+      Storage__PublicBaseUrl: http://localhost:4566
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: kotshop
+      POSTGRES_USER: kotshop
+      POSTGRES_PASSWORD: kotshop
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kotshop -d kotshop"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  localstack:
+    build:
+      context: .
+      dockerfile: docker/localstack/Dockerfile
+    environment:
+      SERVICES: s3
+      AWS_DEFAULT_REGION: us-east-1
+    ports:
+      - "127.0.0.1:4566:4566"
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal s3api get-bucket-policy --bucket kotshop-arquivos >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  postgres-data:

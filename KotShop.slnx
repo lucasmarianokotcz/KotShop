@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="KotShop.Web/KotShop.Web.csproj" />
+  <Project Path="KotShop.Tests/KotShop.Tests.csproj" />
 </Solution>

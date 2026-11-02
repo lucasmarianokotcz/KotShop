@@ -2,6 +2,11 @@ using Flowbite.Services;
 using KotShop.Web.Components;
 using KotShop.Web.Components.Account;
 using KotShop.Web.Data;
+using KotShop.Web.Storage;
+using KotShop.Web.Endpoints;
+using Amazon.Runtime;
+using Amazon.S3;
+using Microsoft.Extensions.Options;
 
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -28,10 +33,28 @@ builder.Services.AddAuthentication(options =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseNpgsql(connectionString));
 builder.Services.AddDbContextFactory<DataContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+builder.Services.AddOptions<S3StorageOptions>()
+    .BindConfiguration("Storage")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IAmazonS3>(services =>
+{
+    var storage = services.GetRequiredService<IOptions<S3StorageOptions>>().Value;
+    return new AmazonS3Client(new BasicAWSCredentials(storage.AccessKey, storage.SecretKey), new AmazonS3Config
+    {
+        ServiceURL = storage.ServiceUrl,
+        AuthenticationRegion = storage.Region,
+        ForcePathStyle = true
+    });
+});
+builder.Services.AddScoped<IFileStorage, S3FileStorage>();
+builder.Services.AddAuthorizationBuilder().AddPolicy("AdministrarCatalogo", policy =>
+    policy.RequireAuthenticatedUser().RequireClaim("permissao", "catalogo:escrever"));
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
@@ -46,6 +69,13 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 
 var app = builder.Build();
 
+if (app.Configuration.GetValue<bool>("Database:ApplyMigrations"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
+    await scope.ServiceProvider.GetRequiredService<DataContext>().Database.MigrateAsync();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -58,8 +88,13 @@ else
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+if (app.Configuration.GetValue("HttpsRedirection:Enabled", true))
+{
+    app.UseHttpsRedirection();
+}
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
@@ -68,5 +103,7 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+app.MapProdutoImagemEndpoints();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();

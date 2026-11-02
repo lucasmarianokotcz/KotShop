@@ -12,7 +12,8 @@
     <PackageReference Include="Flowbite" Version="0.2.6-beta" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.13" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.102.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.13">
       <PrivateAssets>all</PrivateAssets>
@@ -21,7 +22,7 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
-  <Target Name="BuildTailwind" BeforeTargets="BeforeBuild">
+  <Target Name="BuildTailwind" BeforeTargets="BeforeBuild" Condition="'$(SkipTailwind)' != 'true'">
     <Error Condition="!Exists('$(MSBuildProjectDirectory)/node_modules/@tailwindcss/cli')"
            Text="Instale as dependências de CSS: execute npm ci na pasta KotShop.Web." />
     <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="npm run css:build" />
