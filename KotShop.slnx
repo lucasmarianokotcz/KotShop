@@ -1,4 +1,12 @@
 <Solution>
   <Project Path="KotShop.Web/KotShop.Web.csproj" />
-  <Project Path="KotShop.Tests/KotShop.Tests.csproj" />
+  <Project Path="KotShop.Domain/KotShop.Domain.csproj" />
+  <Project Path="KotShop.Application/KotShop.Application.csproj" />
+  <Project Path="KotShop.Data/KotShop.Data.csproj" />
+  <Project Path="KotShop.Infrastructure/KotShop.Infrastructure.csproj" />
+  <Folder Name="/Tests/">
+    <Project Path="KotShop.Domain.Tests/KotShop.Domain.Tests.csproj" />
+    <Project Path="KotShop.Application.Tests/KotShop.Application.Tests.csproj" />
+    <Project Path="KotShop.Infrastructure.Tests/KotShop.Infrastructure.Tests.csproj" />
+  </Folder>
 </Solution>

@@ -2,6 +2,40 @@
 
 Loja em .NET 10 / Blazor, com PostgreSQL (catálogo e Identity) e armazenamento S3 via LocalStack.
 
+## Estrutura por camada e feature
+
+```text
+KotShop.Domain/                  Entidades e regras, sem EF Core, ASP.NET ou AWS
+  Produtos/                      Produto e política de pagamento
+  Categorias/                    Categoria
+KotShop.Application/             Casos de uso e contratos de dependências
+  Produtos/
+    ConsultarCatalogo/           Consulta da vitrine e DTO de produto
+    AtualizarImagem/             Validação e fluxo de atualização da imagem
+    IProdutoRepository.cs
+  Abstractions/IFileStorage.cs
+KotShop.Data/                    Persistência PostgreSQL e Identity
+  Produtos/                     Repository e mapeamento do produto
+  Categorias/                   Mapeamento da categoria
+  Identity/                     Usuário e contexto de autenticação
+  Persistence/                  Contexto do catálogo
+  Migrations/{Catalogo,Identity}/
+KotShop.Infrastructure/          Integrações externas
+  Storage/                      Implementação S3 do contrato de armazenamento
+KotShop.Web/                     Blazor, HTTP e composição das dependências
+  Features/Produtos/            Home, ViewModel e endpoint de upload
+  Components/Account/           Feature de autenticação e gestão da conta
+KotShop.Domain.Tests/            Testes das regras do domínio, por feature
+KotShop.Application.Tests/       Testes dos casos de uso, por feature
+KotShop.Infrastructure.Tests/    Regressões das migrations e do adaptador S3
+```
+
+As dependências apontam para dentro: `Application → Domain`; `Data → Application`; `Infrastructure → Application`. A Web registra os serviços com `AddApplication`, `AddData` e `AddInfrastructure`. Domain não possui dependências de pacotes. Application trabalha com streams e contratos próprios, sem `IFormFile`, `DbContext` ou SDK AWS.
+
+A vitrine usa o caso de uso de consulta; somente o repository conhece as consultas EF Core. O endpoint de upload cuida de HTTP/autorização, e o caso de uso valida os bytes reais, limita a leitura a 5 MB e coordena armazenamento e atualização do produto. Se salvar a URL falhar, a compensação tenta remover o objeto com um token independente do cancelamento da requisição. Uma falha na compensação é registrada com a chave do objeto e preserva a exceção original.
+
+Ao adicionar uma funcionalidade, crie sua pasta na camada pertinente e agrupe ali seus casos de uso, contratos e testes. Os mapeamentos EF usam `IEntityTypeConfiguration`, enquanto as entidades protegem alterações com construtores e métodos. Os valores monetários permanecem `decimal`; formatação em moeda pertence à Web. A regra atual de parcelamento é apenas uma apresentação estimada; a distribuição de centavos para cobrança continua no TODO.
+
 ## Executar com Docker
 
 Com o Docker Desktop em modo Linux, execute na raiz:
@@ -49,13 +83,13 @@ A política local permite leitura pública somente em `produtos/*`; outros arqui
 
 ## Migrations PostgreSQL
 
-As migrations antigas de SQL Server foram substituídas por migrations iniciais PostgreSQL para `ApplicationDbContext` e `DataContext`. Elas criam um banco novo, incluindo os produtos e categorias iniciais, e não transferem dados de uma instalação SQL Server existente. Preserve o banco antigo e planeje a importação separadamente caso existam dados a manter.
+As migrations PostgreSQL estão em `KotShop.Data`, separadas por contexto: `ApplicationDbContext` (Identity) e `CatalogoDbContext` (catálogo). Seus IDs foram preservados na reestruturação, permitindo iniciar com o volume PostgreSQL existente sem recriar o banco. Em uma instalação vazia, criam as tabelas e os produtos/categorias iniciais. Elas não transferem dados de SQL Server; preserve o banco antigo e planeje a importação separadamente caso existam dados a manter.
 
 Com a ferramenta `dotnet-ef` 10 instalada, as atualizações também podem ser executadas manualmente:
 
 ```sh
-dotnet ef database update --project KotShop.Web --context ApplicationDbContext
-dotnet ef database update --project KotShop.Web --context DataContext
+dotnet ef database update --project KotShop.Data --startup-project KotShop.Web --context ApplicationDbContext
+dotnet ef database update --project KotShop.Data --startup-project KotShop.Web --context CatalogoDbContext
 ```
 
 Fora de Development, `Database:ApplyMigrations` é `false` por padrão; aplique as migrations na etapa de implantação ou habilite a configuração explicitamente em um único processo.
@@ -63,10 +97,10 @@ Fora de Development, `Database:ApplyMigrations` é `false` por padrão; aplique 
 ## Testes
 
 ```sh
-dotnet test KotShop.Tests/KotShop.Tests.csproj
+dotnet test KotShop.slnx
 ```
 
-Os testes verificam os scripts PostgreSQL dos dois contextos, incluindo passkeys do Identity e sequências dos dados iniciais, além do envio S3 e da geração de URLs públicas. Não exigem contêineres.
+Os testes de Domain e Application não usam banco, Docker ou rede. Cobrem nomes/preços inválidos, preservação da imagem diante de URL inválida, política de desconto e parcelamento, os três formatos de imagem, tamanho real do stream, produto inexistente, falhas no storage/banco, exclusão concorrente, cancelamento e falha na compensação. Os testes de Infrastructure verificam os scripts PostgreSQL (incluindo snapshots, passkeys e sequências iniciais) e o contrato do adaptador S3 com um cliente substituto, também sem contêineres.
 
 Com o Compose rodando, execute também a verificação ponta a ponta no terminal, na raiz. O script funciona com Windows PowerShell 5.1 (incluído no Windows) e PowerShell 7:
 

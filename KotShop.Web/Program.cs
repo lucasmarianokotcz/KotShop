@@ -1,16 +1,14 @@
 using Flowbite.Services;
 using KotShop.Web.Components;
 using KotShop.Web.Components.Account;
-using KotShop.Web.Data;
-using KotShop.Web.Storage;
-using KotShop.Web.Endpoints;
-using Amazon.Runtime;
-using Amazon.S3;
-using Microsoft.Extensions.Options;
+using KotShop.Data.Identity;
+using KotShop.Application;
+using KotShop.Data;
+using KotShop.Infrastructure;
+using KotShop.Web.Features.Produtos;
 
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,28 +29,11 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
-builder.Services.AddDbContextFactory<DataContext>(options =>
-    options.UseNpgsql(connectionString));
+builder.Services.AddApplication();
+builder.Services.AddData(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddOptions<S3StorageOptions>()
-    .BindConfiguration("Storage")
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-builder.Services.AddSingleton<IAmazonS3>(services =>
-{
-    var storage = services.GetRequiredService<IOptions<S3StorageOptions>>().Value;
-    return new AmazonS3Client(new BasicAWSCredentials(storage.AccessKey, storage.SecretKey), new AmazonS3Config
-    {
-        ServiceURL = storage.ServiceUrl,
-        AuthenticationRegion = storage.Region,
-        ForcePathStyle = true
-    });
-});
-builder.Services.AddScoped<IFileStorage, S3FileStorage>();
 builder.Services.AddAuthorizationBuilder().AddPolicy("AdministrarCatalogo", policy =>
     policy.RequireAuthenticatedUser().RequireClaim("permissao", "catalogo:escrever"));
 
@@ -71,9 +52,7 @@ var app = builder.Build();
 
 if (app.Configuration.GetValue<bool>("Database:ApplyMigrations"))
 {
-    await using var scope = app.Services.CreateAsyncScope();
-    await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
-    await scope.ServiceProvider.GetRequiredService<DataContext>().Database.MigrateAsync();
+    await app.Services.ApplyDatabaseMigrationsAsync();
 }
 
 // Configure the HTTP request pipeline.

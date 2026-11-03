@@ -7,9 +7,18 @@ RUN npm run css:build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY Directory.Build.props ./
+COPY KotShop.Domain/KotShop.Domain.csproj KotShop.Domain/
+COPY KotShop.Application/KotShop.Application.csproj KotShop.Application/
+COPY KotShop.Data/KotShop.Data.csproj KotShop.Data/
+COPY KotShop.Infrastructure/KotShop.Infrastructure.csproj KotShop.Infrastructure/
 COPY KotShop.Web/KotShop.Web.csproj KotShop.Web/
 RUN dotnet restore KotShop.Web/KotShop.Web.csproj
 COPY KotShop.Web/ KotShop.Web/
+COPY KotShop.Domain/ KotShop.Domain/
+COPY KotShop.Application/ KotShop.Application/
+COPY KotShop.Data/ KotShop.Data/
+COPY KotShop.Infrastructure/ KotShop.Infrastructure/
 COPY --from=styles /src/KotShop.Web/wwwroot/tailwind.css KotShop.Web/wwwroot/tailwind.css
 RUN dotnet publish KotShop.Web/KotShop.Web.csproj -c Release -o /app/publish --no-restore -p:SkipTailwind=true
 

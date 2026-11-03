@@ -3,7 +3,7 @@ using System.Text.Json;
 
 using KotShop.Web.Components.Account.Pages;
 using KotShop.Web.Components.Account.Pages.Manage;
-using KotShop.Web.Data;
+using KotShop.Data.Identity;
 
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;

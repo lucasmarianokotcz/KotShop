@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-using KotShop.Web.Data;
+using KotShop.Data.Identity;
 
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;

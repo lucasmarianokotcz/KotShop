@@ -1,4 +1,4 @@
-using KotShop.Web.Data;
+using KotShop.Data.Identity;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
