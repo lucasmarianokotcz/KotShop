@@ -25,6 +25,9 @@ KotShop.Infrastructure/          Integrações externas
 KotShop.Web/                     Blazor, HTTP e composição das dependências
   Features/Produtos/            Home, ViewModel e endpoint de upload
   Components/Account/           Feature de autenticação e gestão da conta
+KotShop.WebAdmin/                Painel administrativo Blazor com Tailwind CSS 4
+  Components/Account/           Login administrativo e autenticação em dois fatores
+  Components/Pages/             Visão geral e consulta de produtos
 KotShop.Domain.Tests/            Testes das regras do domínio, por feature
 KotShop.Application.Tests/       Testes dos casos de uso, por feature
 KotShop.Infrastructure.Tests/    Regressões das migrations e do adaptador S3
@@ -70,6 +73,62 @@ dotnet run
 Em `Development`, a aplicação aplica as migrations ao iniciar. A conexão padrão aponta para PostgreSQL local. Eventuais user-secrets ou variáveis que ainda contenham a conexão SQL Server devem ser atualizados: `ConnectionStrings:DefaultConnection`.
 
 No Compose, o SDK usa `Storage:ServiceUrl=http://localstack:4566`, enquanto `Storage:PublicBaseUrl=http://localhost:4566` gera URLs acessíveis ao navegador. Ao acessar por outra máquina, ajuste a URL pública para o endereço do host Docker. Configurações podem ser sobrescritas por variáveis com `__`, por exemplo `Storage__PublicBaseUrl`.
+
+## Painel administrativo (WebAdmin)
+
+O `KotShop.WebAdmin` é um processo independente da vitrine, com .NET 10, Blazor Server, Flowbite disponível e Tailwind CSS 4 compilado no build. Inicialmente oferece visão geral, consulta de produtos, login/logout e verificação por autenticador ou código de recuperação para contas com 2FA habilitado. Não inclui ainda CRUD, upload ou gestão de usuários.
+
+```sh
+docker compose up -d postgres
+cd KotShop.WebAdmin
+npm ci
+dotnet run --launch-profile http
+```
+
+O perfil HTTP usa `http://kotshop-admin.dev.localhost:5046`; o HTTPS usa `https://kotshop-admin.dev.localhost:7211`. A vitrine pode continuar em execução nas portas existentes. Para recompilar CSS durante a edição, execute `npm run css:watch` em outro terminal.
+
+O painel reutiliza `ApplicationUser`, `ApplicationDbContext` e as migrations de `KotShop.Data`. Configure `ConnectionStrings:DefaultConnection` com o mesmo banco da vitrine. O WebAdmin não aplica migrations automaticamente: execute a vitrine em Development ou os comandos EF abaixo antes do primeiro acesso. Também pode habilitar `Database__ApplyMigrations=true` explicitamente em um único processo.
+
+As contas são compartilhadas, mas os cookies e o nome da aplicação de Data Protection são próprios do painel. Entrar na loja não inicia uma sessão administrativa. O painel aceita contas confirmadas com a permissão `catalogo:escrever` ou a permissão master `administracao:total`. Não expõe cadastro público nem cria administrador/senha padrão ao iniciar normalmente.
+
+### Criar o primeiro administrador master
+
+Com o PostgreSQL e as migrations de Identity preparados (por exemplo, após iniciar a vitrine uma vez em Development), pare a depuração no Visual Studio. Abra um terminal na raiz da solução e execute:
+
+```powershell
+dotnet run --project KotShop.WebAdmin --no-launch-profile -- --environment Development --bootstrap-master
+```
+
+O comando pede um e-mail ainda não cadastrado, uma senha e sua confirmação. A senha não aparece durante a digitação: pressione Enter após cada entrada. Use pelo menos 12 caracteres com maiúscula, minúscula, número e símbolo. Não informe sua senha em argumentos de linha de comando, no Git ou no chat.
+
+A execução cria uma conta com e-mail confirmado e as claims `permissao=administracao:total` e `permissao=catalogo:escrever`. Ela não abre um servidor web. Após a mensagem de sucesso, inicie os projetos normalmente pelo F5 e entre em `https://kotshop-admin.dev.localhost:7211` usando as credenciais escolhidas.
+
+Esse procedimento pressupõe acesso confiável ao terminal e ao banco do ambiente. Ele não depende do envio de e-mail e não promove contas existentes. Caso o e-mail já esteja cadastrado, escolha outro. Se já houver um master, o comando recusa a operação sem criar outra conta ou redefinir senhas. Usuário e permissões são gravados na mesma transação; tentativas simultâneas no PostgreSQL são serializadas.
+
+O master tem acesso a todas as funções administrativas atuais. Novas funcionalidades devem usar políticas que aceitem `administracao:total`; para áreas exclusivas do master, use `AdminAccess.MasterPolicy`. Uma nova política não herda automaticamente essa permissão.
+
+### Conceder acesso limitado ao catálogo
+
+Para outro administrador com acesso apenas ao catálogo, crie e confirme a conta pelo fluxo existente da loja e conceda a claim em uma rotina confiável com `UserManager<ApplicationUser>` (nunca em um endpoint público):
+
+```csharp
+var user = await userManager.FindByEmailAsync(email)
+    ?? throw new InvalidOperationException("Usuário não encontrado.");
+var result = await userManager.AddClaimAsync(user,
+    new System.Security.Claims.Claim("permissao", "catalogo:escrever"));
+if (!result.Succeeded)
+    throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+```
+
+A rotina deve ser executada com acesso administrativo ao ambiente. Nenhuma conta existente recebe essa permissão automaticamente. A confirmação de e-mail dos cadastros comuns segue o fluxo/configuração atual da loja. Para revogar acesso, remova as permissões administrativas da conta (incluindo `administracao:total` e `catalogo:escrever` no caso do master) e atualize o security stamp com `UpdateSecurityStampAsync`; cookies e circuitos existentes passam pela revalidação periódica do Identity (até 30 minutos por padrão).
+
+`KotShop.WebAdmin.Tests` verifica o redirecionamento de visitantes, bloqueio de contas comuns, acesso de administradores, renderização do catálogo, rotas públicas, ausência de cadastro e proteção antiforgery do logout, sem exigir PostgreSQL.
+
+```sh
+dotnet test KotShop.WebAdmin.Tests/KotShop.WebAdmin.Tests.csproj
+```
+
+O Dockerfile e o Compose existentes continuam executando a vitrine; o novo painel é iniciado separadamente com os comandos acima.
 
 ## Imagens de produtos
 

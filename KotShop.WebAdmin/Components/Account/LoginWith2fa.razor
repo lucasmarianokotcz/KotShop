@@ -1,0 +1,51 @@
+@page "/Account/LoginWith2fa"
+@attribute [AllowAnonymous]
+@using KotShop.Data.Identity
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+
+<PageTitle>Verificação de segurança | KotShop Admin</PageTitle>
+<section class="mx-auto mt-8 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <h1 class="text-2xl font-bold">Verificação de segurança</h1>
+    <p class="mt-2 text-sm text-slate-600">Informe o código do aplicativo autenticador ou use um código de recuperação.</p>
+    @if (erro is not null) { <p role="alert" class="mt-4 text-sm text-red-700">@erro</p> }
+    <EditForm Model="Input" method="post" FormName="admin-2fa" OnValidSubmit="VerificarAsync" class="mt-6 space-y-5">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div><label for="codigo" class="text-sm font-medium">Código</label><InputText id="codigo" @bind-Value="Input.Code" autocomplete="one-time-code" required /></div>
+        <label class="flex items-center gap-2 text-sm"><InputCheckbox @bind-Value="Input.RecoveryCode" /> Usar código de recuperação</label>
+        <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-3 font-medium text-white hover:bg-indigo-700">Verificar e entrar</button>
+    </EditForm>
+    <a href="Account/Login" class="mt-4 inline-block text-sm text-indigo-600">Voltar ao login</a>
+</section>
+
+@code {
+    private string? erro;
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task VerificarAsync()
+    {
+        var user = await SignInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user is null || !AdminAccess.CanAccess(await UserManager.GetClaimsAsync(user)))
+        {
+            Navigation.NavigateTo("/Account/Login");
+            return;
+        }
+        var code = Input.Code.Replace(" ", "");
+        var result = Input.RecoveryCode
+            ? await SignInManager.TwoFactorRecoveryCodeSignInAsync(code)
+            : await SignInManager.TwoFactorAuthenticatorSignInAsync(code.Replace("-", ""), isPersistent: false, rememberClient: false);
+        if (result.Succeeded) Navigation.NavigateTo("/");
+        else erro = "Não foi possível verificar o código. Tente novamente ou reinicie o login.";
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Informe o código.")]
+        public string Code { get; set; } = "";
+        public bool RecoveryCode { get; set; }
+    }
+}

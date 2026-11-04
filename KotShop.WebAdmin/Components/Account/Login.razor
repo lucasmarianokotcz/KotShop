@@ -1,0 +1,56 @@
+@page "/Account/Login"
+@attribute [AllowAnonymous]
+@using KotShop.Data.Identity
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+
+<PageTitle>Entrar | KotShop Admin</PageTitle>
+<section class="mx-auto mt-8 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <h1 class="text-2xl font-bold">Entrar no painel</h1>
+    <p class="mt-2 text-sm text-slate-600">Use sua conta KotShop com permissão administrativa.</p>
+    @if (erro is not null) { <p role="alert" class="mt-4 text-sm text-red-700">@erro</p> }
+    <EditForm Model="Input" method="post" FormName="admin-login" OnValidSubmit="EntrarAsync" class="mt-6 space-y-5">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div><label for="email" class="text-sm font-medium">E-mail</label><InputText id="email" type="email" @bind-Value="Input.Email" autocomplete="username" required /></div>
+        <div><label for="senha" class="text-sm font-medium">Senha</label><InputText id="senha" type="password" @bind-Value="Input.Password" autocomplete="current-password" required /></div>
+        <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-3 font-medium text-white hover:bg-indigo-700">Entrar</button>
+    </EditForm>
+</section>
+
+@code {
+    private string? erro;
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task EntrarAsync()
+    {
+        var user = await UserManager.FindByEmailAsync(Input.Email);
+        if (user is null)
+        {
+            erro = "Não foi possível entrar. Verifique suas credenciais e o acesso administrativo.";
+            return;
+        }
+        // Check the password with Identity lockout/confirmation rules before issuing any session.
+        var check = await SignInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
+        if (!check.Succeeded || !AdminAccess.CanAccess(await UserManager.GetClaimsAsync(user)))
+        {
+            erro = "Não foi possível entrar. Verifique suas credenciais e o acesso administrativo.";
+            return;
+        }
+        var result = await SignInManager.PasswordSignInAsync(user, Input.Password, isPersistent: false, lockoutOnFailure: true);
+        if (result.Succeeded) Navigation.NavigateTo("/");
+        else if (result.RequiresTwoFactor) Navigation.NavigateTo("/Account/LoginWith2fa");
+        else erro = "Não foi possível entrar. Verifique suas credenciais e o acesso administrativo.";
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Informe o e-mail."), EmailAddress(ErrorMessage = "Informe um e-mail válido.")]
+        public string Email { get; set; } = "";
+        [Required(ErrorMessage = "Informe a senha.")]
+        public string Password { get; set; } = "";
+    }
+}

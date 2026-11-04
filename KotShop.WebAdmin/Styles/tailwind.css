@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@source "../Components";
+
+@layer base {
+    button:not(:disabled):not([aria-disabled="true"]),
+    [role="button"]:not(:disabled):not([aria-disabled="true"]) { cursor: pointer; }
+    /* FocusOnNavigate focuses the page heading for screen readers after navigation. */
+    h1:focus { outline: none; }
+    input:not([type="checkbox"]) { @apply mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2; }
+    input:focus-visible, button:focus-visible, a:focus-visible { @apply outline-2 outline-offset-2 outline-indigo-600; }
+    .validation-message, .validation-errors { @apply text-sm text-red-700; }
+}

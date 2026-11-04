@@ -8,5 +8,7 @@
     <Project Path="KotShop.Domain.Tests/KotShop.Domain.Tests.csproj" />
     <Project Path="KotShop.Application.Tests/KotShop.Application.Tests.csproj" />
     <Project Path="KotShop.Infrastructure.Tests/KotShop.Infrastructure.Tests.csproj" />
+    <Project Path="KotShop.WebAdmin.Tests/KotShop.WebAdmin.Tests.csproj" />
   </Folder>
+  <Project Path="KotShop.WebAdmin/KotShop.WebAdmin.csproj" />
 </Solution>

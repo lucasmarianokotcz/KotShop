@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>KotShop-WebAdmin-b8abfb1f-56e6-419e-9562-3e465ae361f5</UserSecretsId>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Flowbite" Version="0.2.6-beta" />
+    <ProjectReference Include="../KotShop.Application/KotShop.Application.csproj" />
+    <ProjectReference Include="../KotShop.Data/KotShop.Data.csproj" />
+    <ProjectReference Include="../KotShop.Infrastructure/KotShop.Infrastructure.csproj" />
+  </ItemGroup>
+  <Target Name="BuildTailwind" BeforeTargets="BeforeBuild" Condition="'$(SkipTailwind)' != 'true'">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/node_modules/@tailwindcss/cli')" Text="Instale as dependências de CSS: execute npm ci na pasta KotShop.WebAdmin." />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="npm run css:build" />
+  </Target>
+</Project>

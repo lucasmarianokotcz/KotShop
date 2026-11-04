@@ -1,0 +1,19 @@
+@inherits LayoutComponentBase
+
+<div class="min-h-screen lg:grid lg:grid-cols-[16rem_1fr]">
+    <aside class="bg-slate-950 p-6 text-white">
+        <a href="/" class="text-2xl font-bold tracking-tight">KotShop <span class="text-indigo-300">Admin</span></a>
+        <p class="mt-2 text-sm text-slate-400">Administração da loja</p>
+        <AuthorizeView Policy="@AdminAccess.Policy">
+            <nav aria-label="Menu administrativo" class="mt-8 flex flex-col gap-2">
+                <NavLink href="/" Match="NavLinkMatch.All" class="rounded-lg px-4 py-3 hover:bg-slate-800" ActiveClass="bg-slate-800">Visão geral</NavLink>
+                <NavLink href="produtos" class="rounded-lg px-4 py-3 hover:bg-slate-800" ActiveClass="bg-slate-800">Produtos</NavLink>
+            </nav>
+            <form action="Account/Logout" method="post" class="mt-8">
+                <AntiforgeryToken />
+                <button type="submit" class="rounded-lg border border-slate-600 px-4 py-2 text-sm hover:bg-slate-800">Sair do painel</button>
+            </form>
+        </AuthorizeView>
+    </aside>
+    <main id="conteudo" class="min-w-0 p-6 lg:p-10">@Body</main>
+</div>
