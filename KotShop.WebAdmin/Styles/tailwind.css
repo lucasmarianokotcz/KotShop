@@ -6,7 +6,12 @@
     [role="button"]:not(:disabled):not([aria-disabled="true"]) { cursor: pointer; }
     /* FocusOnNavigate focuses the page heading for screen readers after navigation. */
     h1:focus { outline: none; }
-    input:not([type="checkbox"]) { @apply mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2; }
-    input:focus-visible, button:focus-visible, a:focus-visible { @apply outline-2 outline-offset-2 outline-indigo-600; }
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea { @apply mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2; }
+    input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visible { @apply outline-2 outline-offset-2 outline-indigo-600; }
     .validation-message, .validation-errors { @apply text-sm text-red-700; }
+}
+
+@layer components {
+    .admin-primary { @apply inline-block rounded-lg bg-indigo-600 px-5 py-3 font-medium text-white hover:bg-indigo-700; }
+    .admin-secondary { @apply inline-block rounded-lg border border-slate-300 px-5 py-3 font-medium text-slate-700 hover:bg-slate-100; }
 }

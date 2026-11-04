@@ -1,0 +1,48 @@
+@page "/categorias/novo"
+@page "/categorias/{Id:long}/editar"
+@attribute [Authorize(Policy = AdminAccess.Policy)]
+@inherits CatalogoPageBase
+@using KotShop.Application.Catalogo.Administrar
+@inject ICatalogoAdminService Admin
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id is null ? "Nova categoria" : "Editar categoria") | KotShop Admin</PageTitle>
+<a href="categorias" class="text-sm text-indigo-600">← Voltar às categorias</a>
+<h1 class="mt-4 text-3xl font-bold">@(Id is null ? "Nova categoria" : "Editar categoria")</h1>
+<CatalogoMensagem Erro="@Erro" />
+@if (carregado)
+{
+    <EditForm Model="Input" method="post" FormName="categoria-editar" OnValidSubmit="SalvarAsync" Enhance class="mt-6 max-w-xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+        <DataAnnotationsValidator /><ValidationSummary />
+        <div><label for="nome" class="font-medium">Nome da categoria</label><InputText id="nome" @bind-Value="Input.Nome" required maxlength="255" /><ValidationMessage For="() => Input.Nome" /></div>
+        <div class="flex flex-wrap gap-3"><button type="submit" class="admin-primary">Salvar categoria</button><a href="categorias" class="admin-secondary">Cancelar</a></div>
+    </EditForm>
+}
+@code {
+    [Parameter] public long? Id { get; set; }
+    [SupplyParameterFromForm] private CategoriaInput Input { get; set; } = default!;
+    private bool carregado;
+    protected override async Task OnInitializedAsync()
+    {
+        carregado = await ExecutarAsync(async () =>
+        {
+            if (Id is not null)
+            {
+                var categoria = (await Admin.ListarCategoriasAsync()).SingleOrDefault(c => c.Id == Id)
+                    ?? throw new CatalogoAdminException("Categoria não encontrada.");
+                Input ??= new() { Nome = categoria.Nome };
+            }
+            else Input ??= new();
+        });
+    }
+    private async Task SalvarAsync()
+    {
+        if (await ExecutarAsync(async () => await Admin.SalvarCategoriaAsync(Id, Input.Nome)))
+            Navigation.NavigateTo("/categorias?salvo=true");
+    }
+    private sealed class CategoriaInput
+    {
+        [Required(ErrorMessage = "Informe o nome."), StringLength(255, ErrorMessage = "Use até 255 caracteres no nome.")]
+        public string Nome { get; set; } = "";
+    }
+}

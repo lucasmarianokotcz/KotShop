@@ -10,6 +10,9 @@ public sealed class Produto
     private Produto() { }
 
     public Produto(string nome, decimal preco, string descricao, long categoriaId)
+        => Atualizar(nome, preco, descricao, categoriaId);
+
+    public void Atualizar(string nome, decimal preco, string descricao, long categoriaId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(nome);
         ArgumentException.ThrowIfNullOrWhiteSpace(descricao);

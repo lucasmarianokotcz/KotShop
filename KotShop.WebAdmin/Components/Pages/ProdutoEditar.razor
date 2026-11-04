@@ -1,0 +1,111 @@
+@page "/produtos/novo"
+@page "/produtos/{Id:long}/editar"
+@attribute [Authorize(Policy = AdminAccess.Policy)]
+@inherits CatalogoPageBase
+@rendermode InteractiveServer
+@using KotShop.Application.Produtos.AtualizarImagem
+@inject IProdutoImagemService Imagens
+@using KotShop.Application.Catalogo.Administrar
+@inject ICatalogoAdminService Admin
+
+<PageTitle>@(Id is null ? "Novo produto" : "Editar produto") | KotShop Admin</PageTitle>
+<a href="produtos" class="text-sm text-indigo-600">← Voltar aos produtos</a>
+<h1 class="mt-4 text-3xl font-bold">@(Id is null ? "Novo produto" : "Editar produto")</h1>
+<p class="mt-2 text-slate-600">Ao salvar, as informações serão atualizadas no catálogo da loja.</p>
+<CatalogoMensagem Erro="@Erro" Sucesso="salvo" />
+@if (carregado)
+{
+    @if (categorias.Count == 0)
+    {
+        <p class="mt-6 rounded-lg bg-amber-50 p-4 text-amber-900">Cadastre uma categoria antes de criar um produto. <a href="categorias/novo" class="underline">Criar categoria</a></p>
+    }
+    else
+    {
+        <EditForm Model="Input" FormName="produto-editar" OnValidSubmit="SalvarAsync" class="mt-6 max-w-5xl space-y-6">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <fieldset disabled="@salvando" class="space-y-6">
+            <section class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+            <h2 class="text-xl font-semibold">Dados do produto</h2>
+            <div><label for="nome" class="font-medium">Nome</label><InputText id="nome" @bind-Value="Input.Nome" maxlength="255" required /><ValidationMessage For="() => Input.Nome" /></div>
+            <div><label for="preco" class="font-medium">Preço base (R$)</label><InputNumber id="preco" @bind-Value="Input.Preco" min="0" step="0.01" required /><ValidationMessage For="() => Input.Preco" /><p class="mt-1 text-sm text-slate-500">Preço antes das regras de desconto e parcelamento da loja.</p></div>
+            <div><label for="categoria" class="font-medium">Categoria</label><InputSelect id="categoria" @bind-Value="Input.CategoriaId" required><option value="0">Selecione uma categoria</option>@foreach (var categoria in categorias) { <option value="@categoria.Id">@categoria.Nome</option> }</InputSelect><ValidationMessage For="() => Input.CategoriaId" /></div>
+            <div><label for="descricao" class="font-medium">Descrição</label><InputTextArea id="descricao" @bind-Value="Input.Descricao" rows="5" required /><ValidationMessage For="() => Input.Descricao" /></div>
+            </section>
+            <ProdutoImagemCard Valor="imagem" ValorChanged="ImagemAlterada" CarregandoChanged="value => preparandoImagem = value" />
+            <div class="flex flex-wrap gap-3"><button type="submit" class="admin-primary" disabled="@(salvando || preparandoImagem)">@(salvando ? "Salvando…" : "Salvar produto")</button><a href="produtos" class="admin-secondary">Voltar aos produtos</a></div>
+            </fieldset>
+        </EditForm>
+    }
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private ProdutoFormModel Input { get; set; } = new();
+    private ProdutoImagemSelecao imagem = new(null);
+    private IReadOnlyList<CategoriaAdmin> categorias = [];
+    private bool carregado, salvando, salvo, preparandoImagem;
+    private long? produtoId;
+    private string? imagemSalvaUrl;
+    private long? ultimoId;
+    private bool inicializado;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (inicializado && ultimoId == Id) return;
+        inicializado = true;
+        ultimoId = Id;
+        produtoId = Id;
+        salvo = false;
+        carregado = await ExecutarAsync(async () =>
+        {
+            categorias = await Admin.ListarCategoriasAsync();
+            var produto = Id is not null ? await Admin.ObterProdutoAsync(Id.Value) ?? throw new CatalogoAdminException("Produto não encontrado.") : null;
+            Input = produto is null ? new() : new() { Nome = produto.Nome, Preco = produto.Preco, Descricao = produto.Descricao, CategoriaId = produto.CategoriaId };
+            imagem = new(produto?.UrlImagem);
+            imagemSalvaUrl = produto?.UrlImagem;
+        });
+    }
+
+    private void ImagemAlterada(ProdutoImagemSelecao value) { imagem = value; salvo = false; }
+
+    private async Task SalvarAsync()
+    {
+        if (salvando || preparandoImagem) return;
+        salvando = true;
+        salvo = false;
+        try
+        {
+            salvo = await ExecutarAsync(async () =>
+            {
+                produtoId = await Admin.SalvarProdutoAsync(produtoId, new(Input.Nome, Input.Preco, Input.Descricao, Input.CategoriaId, imagem.Url));
+                if (imagem.Arquivo is not null)
+                {
+                    try
+                    {
+                        using var stream = new MemoryStream(imagem.Arquivo, writable: false);
+                        var result = await Imagens.AtualizarAsync(produtoId.Value, stream);
+                        imagem = new(result.UrlImagem);
+                    }
+                    catch (Exception exception)
+                    {
+                        Logger.LogError(exception, "Produto {ProdutoId} salvo, mas houve falha no upload da imagem.", produtoId);
+                        throw new CatalogoAdminException("Os dados do produto foram salvos, mas não foi possível enviar a imagem. Tente salvar novamente; os campos preenchidos foram preservados.");
+                    }
+                }
+                if (imagem.Arquivo is null && imagem.Url is null && imagemSalvaUrl is not null)
+                {
+                    try { await Imagens.RemoverArquivoAsync(produtoId.Value, imagemSalvaUrl); }
+                    catch (Exception exception)
+                    {
+                        Logger.LogError(exception, "Falha ao excluir o arquivo da imagem do produto {ProdutoId}.", produtoId);
+                        throw new CatalogoAdminException("A imagem foi removida do produto, mas não foi possível excluir o arquivo enviado. Tente salvar novamente para concluir a exclusão.");
+                    }
+                }
+                imagemSalvaUrl = imagem.Url;
+            });
+        }
+        finally { salvando = false; }
+    }
+    [Inject] private ILogger<ProdutoEditar> Logger { get; set; } = default!;
+}

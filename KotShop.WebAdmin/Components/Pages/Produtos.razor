@@ -5,8 +5,9 @@
 @inject ICatalogoService Catalogo
 
 <PageTitle>Produtos | KotShop Admin</PageTitle>
-<h1 class="text-3xl font-bold">Produtos</h1>
-<p class="mt-2 text-slate-600">Consulta do catálogo da loja.</p>
+<div class="flex flex-wrap items-center justify-between gap-4"><h1 class="text-3xl font-bold">Produtos</h1><a href="produtos/novo" class="admin-primary">Novo produto</a></div>
+<p class="mt-2 text-slate-600">Gerencie o catálogo exibido na loja.</p>
+<CatalogoMensagem Sucesso="Salvo" />
 @if (falhou)
 {
     <p role="alert" class="mt-6 rounded-lg bg-red-50 p-4 text-red-800">Não foi possível carregar o catálogo. Tente novamente em instantes.</p>
@@ -20,11 +21,11 @@ else
     <div class="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table class="w-full text-left text-sm">
             <caption class="sr-only">Produtos cadastrados na loja</caption>
-            <thead class="bg-slate-100 text-slate-600"><tr><th scope="col" class="p-4">Código</th><th scope="col" class="p-4">Produto</th><th scope="col" class="p-4">Categoria</th><th scope="col" class="p-4 text-right">Preço base</th></tr></thead>
+            <thead class="bg-slate-100 text-slate-600"><tr><th scope="col" class="p-4">Código</th><th scope="col" class="p-4">Produto</th><th scope="col" class="p-4">Categoria</th><th scope="col" class="p-4 text-right">Preço base</th><th scope="col" class="p-4">Ações</th></tr></thead>
             <tbody>
                 @foreach (var produto in produtos)
                 {
-                    <tr class="border-t border-slate-100"><td class="p-4 text-slate-500">@produto.Id</td><th scope="row" class="p-4 font-medium">@produto.Nome</th><td class="p-4">@produto.Categoria</td><td class="p-4 text-right">@produto.Preco.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</td></tr>
+                    <tr class="border-t border-slate-100"><td class="p-4 text-slate-500">@produto.Id</td><th scope="row" class="p-4 font-medium">@produto.Nome</th><td class="p-4">@produto.Categoria</td><td class="p-4 text-right">@produto.Preco.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</td><td class="p-4"><div class="flex gap-4"><a href="@($"produtos/{produto.Id}/editar")" class="text-indigo-600 underline" aria-label="@($"Editar {produto.Nome}")">Editar</a><a href="@($"produtos/{produto.Id}/excluir")" class="text-red-700 underline" aria-label="@($"Excluir {produto.Nome}")">Excluir</a></div></td></tr>
                 }
             </tbody>
         </table>
@@ -32,6 +33,7 @@ else
 }
 
 @code {
+    [SupplyParameterFromQuery] public bool Salvo { get; set; }
     private IReadOnlyList<ProdutoResumo> produtos = [];
     private bool falhou;
     [Inject] private ILogger<Produtos> Logger { get; set; } = default!;

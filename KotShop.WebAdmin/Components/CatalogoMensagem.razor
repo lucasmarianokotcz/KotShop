@@ -1,0 +1,12 @@
+@if (!string.IsNullOrEmpty(Erro))
+{
+    <p role="alert" class="my-5 rounded-lg bg-red-50 p-4 text-red-800">@Erro</p>
+}
+else if (Sucesso)
+{
+    <p role="status" class="my-5 rounded-lg bg-emerald-50 p-4 text-emerald-800">Alteração salva. O catálogo da loja já está atualizado.</p>
+}
+@code {
+    [Parameter] public string? Erro { get; set; }
+    [Parameter] public bool Sucesso { get; set; }
+}

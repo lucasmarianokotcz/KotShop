@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Antiforgery;
+using KotShop.WebAdmin.Features;
 
 var bootstrapMaster = args.Contains("--bootstrap-master", StringComparer.Ordinal);
 var builder = WebApplication.CreateBuilder(args.Where(arg => arg != "--bootstrap-master").ToArray());
@@ -63,7 +64,9 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+// Re-executing a rejected form POST would read an already invalid antiforgery form again.
+app.UseWhen(context => HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method),
+    branch => branch.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true));
 if (app.Configuration.GetValue("HttpsRedirection:Enabled", true))
     app.UseHttpsRedirection();
 app.UseAuthentication();
@@ -71,6 +74,7 @@ app.UseAuthorization();
 app.UseAntiforgery();
 app.MapStaticAssets().AllowAnonymous();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
+app.MapAdminProdutoImagemEndpoints();
 app.MapPost("/Account/Logout", async (HttpContext context, IAntiforgery antiforgery, SignInManager<ApplicationUser> signInManager) =>
 {
     try { await antiforgery.ValidateRequestAsync(context); }

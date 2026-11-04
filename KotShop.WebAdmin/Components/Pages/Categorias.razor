@@ -1,0 +1,30 @@
+@page "/categorias"
+@attribute [Authorize(Policy = AdminAccess.Policy)]
+@inherits CatalogoPageBase
+@using KotShop.Application.Catalogo.Administrar
+@inject ICatalogoAdminService Admin
+
+<PageTitle>Categorias | KotShop Admin</PageTitle>
+<div class="flex flex-wrap items-center justify-between gap-4"><h1 class="text-3xl font-bold">Categorias</h1><a href="categorias/novo" class="admin-primary">Nova categoria</a></div>
+<p class="mt-2 text-slate-600">Organize os produtos da sua loja.</p>
+<CatalogoMensagem Erro="@Erro" Sucesso="Salvo" />
+@if (Erro is null)
+{
+    @if (categorias.Count == 0) { <p class="mt-6 rounded-lg border border-slate-200 bg-white p-6">Nenhuma categoria cadastrada. Comece criando a primeira.</p> }
+    else
+    {
+        <div class="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white"><table class="w-full text-left text-sm">
+            <caption class="sr-only">Categorias cadastradas</caption>
+            <thead class="bg-slate-100 text-slate-600"><tr><th scope="col" class="p-4">Nome</th><th scope="col" class="p-4">Produtos</th><th scope="col" class="p-4">Ações</th></tr></thead>
+            <tbody>@foreach (var categoria in categorias)
+            {
+                <tr class="border-t border-slate-100"><th scope="row" class="p-4 font-medium">@categoria.Nome</th><td class="p-4">@categoria.QuantidadeProdutos</td><td class="p-4"><div class="flex gap-4"><a href="@($"categorias/{categoria.Id}/editar")" class="text-indigo-600 underline" aria-label="@($"Editar {categoria.Nome}")">Editar</a><a href="@($"categorias/{categoria.Id}/excluir")" class="text-red-700 underline" aria-label="@($"Excluir {categoria.Nome}")">Excluir</a></div></td></tr>
+            }</tbody>
+        </table></div>
+    }
+}
+@code {
+    [SupplyParameterFromQuery] public bool Salvo { get; set; }
+    private IReadOnlyList<CategoriaAdmin> categorias = [];
+    protected override async Task OnInitializedAsync() => await ExecutarAsync(async () => categorias = await Admin.ListarCategoriasAsync());
+}

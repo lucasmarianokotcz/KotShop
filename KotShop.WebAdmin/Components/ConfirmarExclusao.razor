@@ -1,0 +1,34 @@
+@inherits CatalogoPageBase
+@using KotShop.Application.Catalogo.Administrar
+@inject ICatalogoAdminService Admin
+@inject NavigationManager Navigation
+
+<PageTitle>Confirmar exclusão | KotShop Admin</PageTitle>
+<h1 class="text-3xl font-bold">Confirmar exclusão</h1>
+<CatalogoMensagem Erro="@Erro" />
+@if (nome is not null)
+{
+    <section class="mt-6 max-w-xl space-y-5 rounded-2xl border border-red-200 bg-white p-6">
+        <p>Deseja excluir @(Categoria ? "a categoria" : "o produto") <strong>@nome</strong>?</p>
+        <p class="text-sm text-slate-600">@(Categoria ? "Categorias com produtos não podem ser excluídas." : "O produto será removido da vitrine. Esta ação não pode ser desfeita.")</p>
+        <EditForm Model="this" method="post" FormName="confirmar-exclusao" OnValidSubmit="ExcluirAsync" Enhance>
+            <div class="flex flex-wrap gap-3"><button type="submit" class="rounded-lg bg-red-700 px-5 py-3 font-medium text-white hover:bg-red-800">Excluir definitivamente</button><a href="@Destino" class="admin-secondary">Cancelar</a></div>
+        </EditForm>
+    </section>
+}
+@code {
+    [Parameter] public long Id { get; set; }
+    [Parameter] public bool Categoria { get; set; }
+    private string? nome;
+    private string Destino => Categoria ? "categorias" : "produtos";
+    protected override async Task OnInitializedAsync() => await ExecutarAsync(async () =>
+    {
+        nome = Categoria ? (await Admin.ListarCategoriasAsync()).SingleOrDefault(c => c.Id == Id)?.Nome : (await Admin.ObterProdutoAsync(Id))?.Nome;
+        if (nome is null) throw new CatalogoAdminException("O registro não existe mais.");
+    });
+    private async Task ExcluirAsync()
+    {
+        if (await ExecutarAsync(() => Categoria ? Admin.ExcluirCategoriaAsync(Id) : Admin.ExcluirProdutoAsync(Id)))
+            Navigation.NavigateTo($"/{Destino}?salvo=true");
+    }
+}

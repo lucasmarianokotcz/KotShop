@@ -42,6 +42,12 @@ public class S3FileStorageTests
     {
         public PutObjectRequest? Upload { get; private set; }
         public bool FailUpload { get; init; }
+        public string? DeletedKey { get; private set; }
+        public override Task<DeleteObjectResponse> DeleteObjectAsync(string bucketName, string key, CancellationToken cancellationToken = default)
+        {
+            DeletedKey = key;
+            return Task.FromResult(new DeleteObjectResponse());
+        }
 
         public override Task<PutObjectResponse> PutObjectAsync(PutObjectRequest request, CancellationToken cancellationToken = default)
         {
@@ -49,5 +55,19 @@ public class S3FileStorageTests
             Upload = request;
             return Task.FromResult(new PutObjectResponse());
         }
+    }
+
+    [Theory]
+    [InlineData("http://localhost:4566/kotshop-arquivos/produtos/1/00112233445566778899aabbccddeeff.png", true)]
+    [InlineData("https://externo.com/produtos/1/00112233445566778899aabbccddeeff.png", false)]
+    [InlineData("http://localhost:4566/kotshop-arquivos/produtos/2/00112233445566778899aabbccddeeff.png", false)]
+    [InlineData("http://localhost:4566/kotshop-arquivos/produtos/1/../outro.png", false)]
+    [InlineData("http://localhost:4566/kotshop-arquivos/produtos/1/%2e%2e%2foutro.png", false)]
+    public async Task Removal_only_deletes_generated_images_owned_by_the_product(string url, bool shouldDelete)
+    {
+        using var s3 = new RecordingS3();
+        var storage = new S3FileStorage(s3, Options.Create(new S3StorageOptions { BucketName = "kotshop-arquivos", PublicBaseUrl = "http://localhost:4566" }));
+        await storage.DeleteOwnedImageAsync(url, 1);
+        Assert.Equal(shouldDelete, s3.DeletedKey is not null);
     }
 }

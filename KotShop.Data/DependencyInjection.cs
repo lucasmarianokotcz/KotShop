@@ -18,6 +18,7 @@ public static class DependencyInjection
         // A factory gives each catalog operation its own context, including Blazor server circuits.
         services.AddDbContextFactory<CatalogoDbContext>(options => options.UseNpgsql(connection));
         services.AddScoped<IProdutoRepository, ProdutoRepository>();
+        services.AddScoped<KotShop.Application.Catalogo.Administrar.ICatalogoAdminRepository, Catalogo.CatalogoAdminRepository>();
         return services;
     }
 

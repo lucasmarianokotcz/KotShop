@@ -1,0 +1,4 @@
+@page "/categorias/{Id:long}/excluir"
+@attribute [Authorize(Policy = AdminAccess.Policy)]
+<ConfirmarExclusao Id="Id" Categoria="true" />
+@code { [Parameter] public long Id { get; set; } }

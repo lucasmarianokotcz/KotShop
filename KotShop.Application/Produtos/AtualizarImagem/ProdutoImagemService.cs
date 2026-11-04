@@ -13,6 +13,9 @@ public sealed class ProdutoImagemService(
     private const int TamanhoBufferLeituraEmKb = 80;
     private const int TamanhoBufferLeitura = TamanhoBufferLeituraEmKb * 1024;
 
+    public Task RemoverArquivoAsync(long produtoId, string url, CancellationToken cancellationToken = default) =>
+        storage.DeleteOwnedImageAsync(url, produtoId, cancellationToken);
+
     public async Task<ImagemProdutoAtualizada> AtualizarAsync(long produtoId, Stream imagem, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(imagem);
@@ -77,7 +80,7 @@ public sealed class ProdutoImagemService(
         }
     }
 
-    private static (string Extensao, string ContentType) DetectarFormato(ReadOnlySpan<byte> bytes)
+    public static (string Extensao, string ContentType) DetectarFormato(ReadOnlySpan<byte> bytes)
     {
         if (bytes.StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
             return ("png", "image/png");

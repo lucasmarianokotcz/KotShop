@@ -76,7 +76,15 @@ No Compose, o SDK usa `Storage:ServiceUrl=http://localstack:4566`, enquanto `Sto
 
 ## Painel administrativo (WebAdmin)
 
-O `KotShop.WebAdmin` é um processo independente da vitrine, com .NET 10, Blazor Server, Flowbite disponível e Tailwind CSS 4 compilado no build. Inicialmente oferece visão geral, consulta de produtos, login/logout e verificação por autenticador ou código de recuperação para contas com 2FA habilitado. Não inclui ainda CRUD, upload ou gestão de usuários.
+O `KotShop.WebAdmin` é um processo independente da vitrine, com .NET 10, Blazor Server, Flowbite disponível e Tailwind CSS 4 compilado no build. Oferece visão geral, cadastro/edição/exclusão de produtos e categorias, upload de imagens, login/logout e verificação por autenticador ou código de recuperação para contas com 2FA habilitado. A gestão de usuários ainda não possui tela.
+
+Em **Categorias**, crie ou renomeie as categorias. Em **Produtos**, use **Novo produto** ou **Editar** para preencher nome, preço base, descrição e categoria. A edição de produtos é interativa: o card **Imagem do produto** permite escolher entre arquivo PNG/JPEG/WebP de até 5 MB ou URL pública HTTP/HTTPS, exibe a imagem atual e a prévia da seleção, e oferece **Remover imagem do produto**. Tudo é aplicado em **Salvar produto**, sem recarregar a página nem perder os campos preenchidos, inclusive no cadastro de um produto novo. O LocalStack/S3 precisa estar disponível para gravar ou excluir arquivos enviados.
+
+Ao remover e salvar, o painel limpa a URL do produto e exclui o arquivo do S3 somente se a URL identificar um arquivo gerado para esse produto no storage configurado. URLs externas apenas são desvinculadas. A troca de imagem preserva arquivos anteriores; a exclusão explícita remove o arquivo atual. Se o envio falhar depois de salvar os dados, a tela informa a falha e preserva a seleção para tentar novamente, sem criar outro produto.
+
+Os dois projetos usam o mesmo banco: produtos criados, preços alterados, imagens e categorias renomeadas aparecem na próxima navegação ou atualização da Home da loja. Uma Home já aberta não recebe atualização em tempo real. Descontos e parcelamento continuam seguindo as regras existentes. Categorias sem produtos aparecem apenas no painel até receberem produtos.
+
+Toda exclusão exige uma página de confirmação e envio POST com antiforgery. Categorias que possuem produtos não podem ser excluídas; primeiro mova ou exclua os produtos. Excluir um produto remove o registro da vitrine, mas preserva arquivos já enviados ao S3. O CRUD usa as tabelas e a restrição de chave estrangeira existentes, sem novas migrations. Edições concorrentes do mesmo campo seguem a última gravação.
 
 ```sh
 docker compose up -d postgres
@@ -122,7 +130,7 @@ if (!result.Succeeded)
 
 A rotina deve ser executada com acesso administrativo ao ambiente. Nenhuma conta existente recebe essa permissão automaticamente. A confirmação de e-mail dos cadastros comuns segue o fluxo/configuração atual da loja. Para revogar acesso, remova as permissões administrativas da conta (incluindo `administracao:total` e `catalogo:escrever` no caso do master) e atualize o security stamp com `UpdateSecurityStampAsync`; cookies e circuitos existentes passam pela revalidação periódica do Identity (até 30 minutos por padrão).
 
-`KotShop.WebAdmin.Tests` verifica o redirecionamento de visitantes, bloqueio de contas comuns, acesso de administradores, renderização do catálogo, rotas públicas, ausência de cadastro e proteção antiforgery do logout, sem exigir PostgreSQL.
+`KotShop.WebAdmin.Tests` verifica o redirecionamento de visitantes, bloqueio de contas comuns, acesso de administradores, renderização do catálogo, rotas públicas, ausência de cadastro e proteção antiforgery do logout. Os testes de CRUD usam HTTP e componentes interativos bUnit com SQLite temporário e storage substituto: criam, editam e excluem produtos/categorias, verificam o reflexo na consulta da vitrine, validações, upload e proteção contra exclusão de categorias em uso. Testes do card cobrem prévias, troca entre arquivo e URL, remoção e preservação da imagem diante de arquivo inválido, sem exigir PostgreSQL ou S3.
 
 ```sh
 dotnet test KotShop.WebAdmin.Tests/KotShop.WebAdmin.Tests.csproj
@@ -134,7 +142,7 @@ O Dockerfile e o Compose existentes continuam executando a vitrine; o novo paine
 
 `POST /api/produtos/{id}/imagem` recebe `multipart/form-data` com o campo `arquivo`. Aceita PNG, JPEG e WebP, até 5 MB, verificando a assinatura do arquivo. O nome do objeto é gerado pela aplicação em `produtos/{id}/{guid}.{extensao}`.
 
-O endpoint exige login, claim `permissao=catalogo:escrever` e o token antiforgery do formulário ASP.NET. A concessão dessa claim deve ser feita por um fluxo administrativo confiável usando `UserManager<ApplicationUser>.AddClaimAsync`; o cadastro público não concede essa permissão. Ainda não há tela administrativa de upload.
+O endpoint da vitrine exige login, claim `permissao=catalogo:escrever` e o token antiforgery do formulário ASP.NET. A concessão dessa claim deve ser feita por um fluxo administrativo confiável usando `UserManager<ApplicationUser>.AddClaimAsync`; o cadastro público não concede essa permissão. O WebAdmin oferece upload na edição do produto usando seu próprio endpoint protegido, `POST /produtos/{id}/imagem`, e o mesmo caso de uso de armazenamento e atualização de imagem.
 
 O upload grava no S3, atualiza `Produto.UrlImagem` e retorna `{ id, urlImagem }`. Se a gravação no banco falhar, tenta remover o objeto recém-enviado. Imagens anteriores são preservadas ao substituir a URL. A vitrine mostra a imagem quando a URL está preenchida. Produtos sem imagem continuam válidos.
 

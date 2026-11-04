@@ -20,6 +20,13 @@ public sealed class AdminAccessTests
     [Theory]
     [InlineData("/")]
     [InlineData("/produtos")]
+    [InlineData("/produtos/novo")]
+    [InlineData("/produtos/1/editar")]
+    [InlineData("/produtos/1/excluir")]
+    [InlineData("/categorias")]
+    [InlineData("/categorias/novo")]
+    [InlineData("/categorias/1/editar")]
+    [InlineData("/categorias/1/excluir")]
     public async Task Anonymous_is_redirected_to_admin_login(string path)
     {
         using var factory = new AdminFactory();
@@ -43,6 +50,13 @@ public sealed class AdminAccessTests
     [Theory]
     [InlineData("/", false, HttpStatusCode.Forbidden)]
     [InlineData("/produtos", false, HttpStatusCode.Forbidden)]
+    [InlineData("/produtos/novo", false, HttpStatusCode.Forbidden)]
+    [InlineData("/produtos/1/editar", false, HttpStatusCode.Forbidden)]
+    [InlineData("/produtos/1/excluir", false, HttpStatusCode.Forbidden)]
+    [InlineData("/categorias", false, HttpStatusCode.Forbidden)]
+    [InlineData("/categorias/novo", false, HttpStatusCode.Forbidden)]
+    [InlineData("/categorias/1/editar", false, HttpStatusCode.Forbidden)]
+    [InlineData("/categorias/1/excluir", false, HttpStatusCode.Forbidden)]
     [InlineData("/", true, HttpStatusCode.OK)]
     [InlineData("/produtos", true, HttpStatusCode.OK)]
     public async Task Admin_claim_is_required(string path, bool admin, HttpStatusCode expected)
@@ -70,6 +84,20 @@ public sealed class AdminAccessTests
         using var factory = new AdminFactory(authenticated: true, admin: true);
         using var client = factory.CreateClient(new() { AllowAutoRedirect = false });
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/Account/Logout", new FormUrlEncodedContent([]))).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Visitors_and_customers_cannot_post_catalog_changes(bool authenticated)
+    {
+        using var factory = new AdminFactory(authenticated: authenticated);
+        using var client = factory.CreateClient(new() { AllowAutoRedirect = false });
+        foreach (var path in new[] { "/produtos/novo", "/produtos/1/editar", "/produtos/1/excluir", "/produtos/1/imagem", "/categorias/novo", "/categorias/1/editar", "/categorias/1/excluir" })
+        {
+            var response = await client.PostAsync(path, new FormUrlEncodedContent([]));
+            Assert.Equal(authenticated ? HttpStatusCode.Forbidden : HttpStatusCode.Redirect, response.StatusCode);
+        }
     }
 
     [Fact]

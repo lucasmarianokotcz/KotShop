@@ -26,4 +26,14 @@ public sealed class S3FileStorage(IAmazonS3 s3, IOptions<S3StorageOptions> optio
 
     public Task DeleteAsync(string key, CancellationToken cancellationToken = default) =>
         s3.DeleteObjectAsync(storage.BucketName, key, cancellationToken);
+
+    public Task DeleteOwnedImageAsync(string url, long produtoId, CancellationToken cancellationToken = default)
+    {
+        var prefix = $"{storage.PublicBaseUrl.TrimEnd('/')}/{storage.BucketName}/produtos/{produtoId}/";
+        if (!url.StartsWith(prefix, StringComparison.Ordinal)) return Task.CompletedTask;
+        var file = url[prefix.Length..].Split('.');
+        if (file.Length != 2 || !Guid.TryParseExact(file[0], "N", out _) || file[1] is not ("png" or "jpg" or "webp"))
+            return Task.CompletedTask;
+        return DeleteAsync($"produtos/{produtoId}/{file[0]}.{file[1]}", cancellationToken);
+    }
 }

@@ -9,6 +9,9 @@ public sealed class Categoria
     private Categoria() { }
 
     public Categoria(string nome)
+        => Renomear(nome);
+
+    public void Renomear(string nome)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(nome);
         if (nome.Trim().Length > TamanhoMaximoNome)

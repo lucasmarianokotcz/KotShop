@@ -226,6 +226,7 @@ public class ProdutoImagemServiceTests
 
     private sealed class StorageFake : IFileStorage
     {
+        public Task DeleteOwnedImageAsync(string url, long produtoId, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public string Url { get; set; } = "http://localhost:4566/kotshop-arquivos/produtos/42/nova.png";
         public string? KeyEnviada { get; private set; }
         public string? ContentType { get; private set; }

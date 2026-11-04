@@ -1,0 +1,100 @@
+@using KotShop.Application.Produtos.AtualizarImagem
+
+<section class="rounded-2xl border border-slate-200 bg-white p-6" aria-labelledby="titulo-imagem">
+    <h2 id="titulo-imagem" class="text-xl font-semibold">Imagem do produto</h2>
+    <p class="mt-2 text-sm text-slate-600">Escolha um arquivo ou informe uma URL. As alterações serão aplicadas ao salvar o produto.</p>
+    <fieldset disabled="@carregando" class="mt-5">
+        <legend class="sr-only">Origem da imagem</legend>
+        <div class="flex flex-wrap gap-5">
+            <label class="flex cursor-pointer items-center gap-2"><input type="radio" name="origem-imagem" checked="@(!usarUrl)" @onchange="() => TrocarOrigemAsync(false)" /> Enviar arquivo</label>
+            <label class="flex cursor-pointer items-center gap-2"><input type="radio" name="origem-imagem" checked="@usarUrl" @onchange="() => TrocarOrigemAsync(true)" /> Usar URL</label>
+        </div>
+        <div class="mt-5">
+            @if (usarUrl)
+            {
+                <label for="imagem-url" class="font-medium">URL da imagem</label>
+                <input id="imagem-url" type="url" value="@Valor.Url" @oninput="AlterarUrlAsync" maxlength="1000" placeholder="https://exemplo.com/imagem.jpg" />
+                <p class="mt-1 text-sm text-slate-500">Use uma URL pública HTTP ou HTTPS.</p>
+            }
+            else
+            {
+                <label for="imagem-arquivo" class="font-medium">Arquivo de imagem</label>
+                <InputFile @key="versaoArquivo" id="imagem-arquivo" OnChange="SelecionarArquivoAsync" accept="image/png,image/jpeg,image/webp" />
+                <p class="mt-1 text-sm text-slate-500">PNG, JPEG ou WebP de até 5 MB.</p>
+            }
+        </div>
+        <div class="mt-5 flex min-h-56 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-4" aria-busy="@carregando">
+            @if (carregando) { <p role="status" class="text-sm text-slate-500">Preparando prévia…</p> }
+            else if (preview is not null && !imagemFalhou)
+            {
+                <img @key="preview" src="@preview" alt="Prévia da imagem do produto" class="max-h-72 max-w-full object-contain" @onerror="() => imagemFalhou = true" />
+            }
+            else { <p role="status" class="text-sm text-slate-500">@(imagemFalhou ? "Não foi possível exibir a imagem. Confira a URL ou escolha outro arquivo." : "Nenhuma imagem selecionada.")</p> }
+        </div>
+        @if (erro is not null) { <p role="alert" class="mt-3 text-sm text-red-700">@erro</p> }
+        @if (Valor.Arquivo is not null || !string.IsNullOrEmpty(Valor.Url))
+        {
+            <button type="button" @onclick="RemoverAsync" class="mt-4 text-sm font-medium text-red-700 underline">Remover imagem do produto</button>
+        }
+    </fieldset>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public ProdutoImagemSelecao Valor { get; set; } = new(null);
+    [Parameter] public EventCallback<ProdutoImagemSelecao> ValorChanged { get; set; }
+    [Parameter] public EventCallback<bool> CarregandoChanged { get; set; }
+    private bool usarUrl, carregando, imagemFalhou;
+    private string? preview, erro;
+    private int versaoArquivo;
+    private ProdutoImagemSelecao? ultimoValor;
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(ultimoValor, Valor)) return;
+        ultimoValor = Valor;
+        imagemFalhou = false;
+        preview = Valor.Arquivo is not null
+            ? $"data:{ProdutoImagemService.DetectarFormato(Valor.Arquivo).ContentType};base64,{Convert.ToBase64String(Valor.Arquivo)}"
+            : UrlValida(Valor.Url) ? Valor.Url : null;
+    }
+    private static bool UrlValida(string? url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == "http" || uri.Scheme == "https");
+    private async Task TrocarOrigemAsync(bool url)
+    {
+        usarUrl = url;
+        erro = null;
+        if (url && Valor.Arquivo is not null) await ValorChanged.InvokeAsync(new(Valor.Url));
+    }
+    private async Task AlterarUrlAsync(ChangeEventArgs args)
+    {
+        erro = null;
+        var url = args.Value?.ToString()?.Trim();
+        if (!string.IsNullOrEmpty(url) && !UrlValida(url)) erro = "Informe uma URL HTTP ou HTTPS válida.";
+        await ValorChanged.InvokeAsync(new(string.IsNullOrWhiteSpace(url) ? null : url));
+    }
+    private async Task SelecionarArquivoAsync(InputFileChangeEventArgs args)
+    {
+        erro = null;
+        carregando = true;
+        await CarregandoChanged.InvokeAsync(true);
+        try
+        {
+            await using var stream = args.File.OpenReadStream(ProdutoImagemService.TamanhoMaximoImagem);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var bytes = buffer.ToArray();
+            ProdutoImagemService.DetectarFormato(bytes);
+            await ValorChanged.InvokeAsync(new(Valor.Url, bytes));
+        }
+        catch (Exception exception) when (exception is IOException or ImagemInvalidaException or InvalidOperationException)
+        {
+            erro = "Não foi possível ler a imagem. Selecione um arquivo PNG, JPEG ou WebP de até 5 MB.";
+            versaoArquivo++;
+        }
+        finally { carregando = false; await CarregandoChanged.InvokeAsync(false); }
+    }
+    private async Task RemoverAsync()
+    {
+        erro = null;
+        versaoArquivo++;
+        await ValorChanged.InvokeAsync(new(null));
+    }
+}
