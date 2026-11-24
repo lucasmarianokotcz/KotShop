@@ -17,18 +17,21 @@
     </div>
 </header>
 
-<section aria-label="Categorias" class="border-b border-slate-200 bg-white">
-    <div class="mx-auto max-w-6xl px-6 py-5">
+<section aria-label="Categorias" class="border-b border-slate-200 bg-white shadow-xs">
+    <div class="mx-auto max-w-6xl px-6 py-3.5">
         @if (categorias.Count > 0)
         {
-            <ul class="flex flex-wrap gap-4 text-sm text-slate-700">
+            <ul class="flex flex-wrap items-center gap-2.5 text-sm">
                 @{ var categoriaAtual = CategoriaAtual; }
                 @foreach (var categoria in categorias)
                 {
                     var slug = SlugHelper.Criar(categoria.Nome);
+                    var ativa = categoria.Id == categoriaAtual?.Id;
                     <li>
-                        <a href="@($"/produtos?categoria={slug}")" class="@(categoria.Id == categoriaAtual?.Id ? "font-bold" : string.Empty)">
-                            @categoria.Nome
+                        <a href="@($"/produtos?categoria={slug}")"
+                           class="@($"group relative inline-flex items-center overflow-hidden rounded-full bg-slate-100 px-4 py-1.5 text-slate-700 hover:text-white hover:transition-colors hover:duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 {(ativa ? "font-bold" : "font-medium")}")">
+                            <span class="absolute inset-y-0 left-0 w-0 bg-emerald-600 group-hover:w-full group-hover:transition-[width] group-hover:duration-300 group-hover:ease-out" aria-hidden="true"></span>
+                            <span class="relative z-10">@categoria.Nome</span>
                         </a>
                     </li>
                 }

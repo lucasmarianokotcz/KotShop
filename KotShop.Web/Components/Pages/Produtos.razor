@@ -7,7 +7,10 @@
 
 <TituloPagina Nome="Produtos" />
 
-<h3>@Titulo</h3>
+<div class="mb-8 flex items-center gap-3">
+    <span class="h-8 w-1.5 rounded-full bg-emerald-600" aria-hidden="true"></span>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">@Titulo</h1>
+</div>
 <ListaProdutos Produtos="ProdutosVisiveis" />
 
 @code {
@@ -31,8 +34,8 @@
     {
         get
         {
-            var nome = CategoriaSelecionada?.Nome ?? Categoria;
-            return string.IsNullOrEmpty(nome) ? "Produtos" : $"Produtos - {nome}";
+            string? categoria = CategoriaSelecionada?.Nome ?? Categoria;
+            return string.IsNullOrEmpty(categoria) ? "Produtos" : $"{categoria}";
         }
     }
 
