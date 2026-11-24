@@ -1,4 +1,6 @@
+using KotShop.Application.Categorias;
 using KotShop.Application.Produtos;
+using KotShop.Data.Categorias;
 using KotShop.Data.Identity;
 using KotShop.Data.Persistence;
 using KotShop.Data.Produtos;
@@ -18,6 +20,7 @@ public static class DependencyInjection
         // A factory gives each catalog operation its own context, including Blazor server circuits.
         services.AddDbContextFactory<CatalogoDbContext>(options => options.UseNpgsql(connection));
         services.AddScoped<IProdutoRepository, ProdutoRepository>();
+        services.AddScoped<ICategoriaRepository, CategoriaRepository>();
         services.AddScoped<KotShop.Application.Catalogo.Administrar.ICatalogoAdminRepository, Catalogo.CatalogoAdminRepository>();
         return services;
     }

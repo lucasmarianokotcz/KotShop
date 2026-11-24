@@ -9,14 +9,17 @@ KotShop.Domain/                  Entidades e regras, sem EF Core, ASP.NET ou AWS
   Produtos/                      Produto e política de pagamento
   Categorias/                    Categoria
 KotShop.Application/             Casos de uso e contratos de dependências
+  Catalogo/Consultar/             Serviço de consulta dos produtos da vitrine
+  Catalogo/Administrar/          Casos de uso do painel administrativo
+  Categorias/                    Serviço, resumo e contrato de consulta de categorias
   Produtos/
-    ConsultarCatalogo/           Consulta da vitrine e DTO de produto
+    ConsultarCatalogo/           DTO de produto da vitrine
     AtualizarImagem/             Validação e fluxo de atualização da imagem
     IProdutoRepository.cs
   Abstractions/IFileStorage.cs
 KotShop.Data/                    Persistência PostgreSQL e Identity
   Produtos/                     Repository e mapeamento do produto
-  Categorias/                   Mapeamento da categoria
+  Categorias/                   Repository e mapeamento da categoria
   Identity/                     Usuário e contexto de autenticação
   Persistence/                  Contexto do catálogo
   Migrations/{Catalogo,Identity}/
@@ -82,7 +85,7 @@ Em **Categorias**, crie ou renomeie as categorias. Em **Produtos**, use **Novo p
 
 Ao remover e salvar, o painel limpa a URL do produto e exclui o arquivo do S3 somente se a URL identificar um arquivo gerado para esse produto no storage configurado. URLs externas apenas são desvinculadas. A troca de imagem preserva arquivos anteriores; a exclusão explícita remove o arquivo atual. Se o envio falhar depois de salvar os dados, a tela informa a falha e preserva a seleção para tentar novamente, sem criar outro produto.
 
-Os dois projetos usam o mesmo banco: produtos criados, preços alterados, imagens e categorias renomeadas aparecem na próxima navegação ou atualização da Home da loja. Uma Home já aberta não recebe atualização em tempo real. Descontos e parcelamento continuam seguindo as regras existentes. Categorias sem produtos aparecem apenas no painel até receberem produtos.
+Os dois projetos usam o mesmo banco: produtos criados, preços alterados, imagens e categorias renomeadas aparecem na próxima navegação ou atualização da loja. Uma página já aberta não recebe atualização em tempo real. Descontos e parcelamento continuam seguindo as regras existentes. O layout da vitrine lista todas as categorias cadastradas, inclusive as que ainda não possuem produtos; a lista não filtra os produtos.
 
 Toda exclusão exige uma página de confirmação e envio POST com antiforgery. Categorias que possuem produtos não podem ser excluídas; primeiro mova ou exclua os produtos. Excluir um produto remove o registro da vitrine, mas preserva arquivos já enviados ao S3. O CRUD usa as tabelas e a restrição de chave estrangeira existentes, sem novas migrations. Edições concorrentes do mesmo campo seguem a última gravação.
 

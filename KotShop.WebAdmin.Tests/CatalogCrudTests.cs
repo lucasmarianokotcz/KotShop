@@ -3,8 +3,9 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
 using KotShop.Application.Catalogo.Administrar;
+using KotShop.Application.Catalogo.Consultar;
 using KotShop.Application.Abstractions;
-using KotShop.Application.Produtos.ConsultarCatalogo;
+using KotShop.Application.Categorias;
 using KotShop.Data.Persistence;
 using KotShop.WebAdmin.Security;
 using Microsoft.AspNetCore.Authentication;
@@ -43,16 +44,17 @@ public sealed class CatalogCrudTests
             ["Input.CategoriaId"] = category.Id.ToString(), ["Input.UrlImagem"] = "https://example.com/capa.png"
         };
         SaveProduct(app, null, values);
-        var product = Assert.Single(await catalog.ListarAsync(), p => p.Nome == "Livro novo");
+        var product = Assert.Single(await catalog.ListarProdutosAsync(), p => p.Nome == "Livro novo");
         Assert.Equal(49.90m, product.Preco);
         Assert.Equal("Livros", product.Categoria);
+        Assert.Equal(category.Id, product.CategoriaId);
 
         values["Input.Nome"] = "Livro revisado";
         values["Input.Preco"] = "59.90";
         values["Input.UrlImagem"] = "";
         SaveProduct(app, product.Id, values);
         AssertRedirect(await PostForm(client, $"/categorias/{category.Id}/editar", "categoria-editar", new() { ["Input.Nome"] = "Livros e revistas" }));
-        product = Assert.Single(await catalog.ListarAsync(), p => p.Id == product.Id);
+        product = Assert.Single(await catalog.ListarProdutosAsync(), p => p.Id == product.Id);
         Assert.Equal("Livro revisado", product.Nome);
         Assert.Equal("Livros e revistas", product.Categoria);
         Assert.Equal(59.90m, product.Preco);
@@ -67,9 +69,31 @@ public sealed class CatalogCrudTests
         Assert.Contains("possui produtos", await blocked.Content.ReadAsStringAsync());
         Assert.Contains(await admin.ListarCategoriasAsync(), c => c.Id == category.Id);
         AssertRedirect(await PostForm(client, $"/produtos/{product.Id}/excluir", "confirmar-exclusao", new()));
-        Assert.DoesNotContain(await catalog.ListarAsync(), p => p.Id == product.Id);
+        Assert.DoesNotContain(await catalog.ListarProdutosAsync(), p => p.Id == product.Id);
         AssertRedirect(await PostForm(client, $"/categorias/{category.Id}/excluir", "confirmar-exclusao", new()));
         Assert.DoesNotContain(await admin.ListarCategoriasAsync(), c => c.Id == category.Id);
+    }
+
+    [Fact]
+    public async Task Storefront_categories_include_empty_categories_and_reflect_admin_changes()
+    {
+        using var app = new CatalogApp();
+        using var scope = app.Services.CreateScope();
+        var admin = scope.ServiceProvider.GetRequiredService<ICatalogoAdminService>();
+        var categorias = scope.ServiceProvider.GetRequiredService<ICategoriaService>();
+        var id = await admin.SalvarCategoriaAsync(null, "Acessórios");
+
+        var result = await categorias.ListarAsync();
+        Assert.Equal(new CategoriaResumo(id, "Acessórios"), result[0]);
+        Assert.Equal(4, result.Count);
+
+        await admin.SalvarCategoriaAsync(id, "Zoologia");
+        result = await categorias.ListarAsync();
+        Assert.Equal(new CategoriaResumo(id, "Zoologia"), result[^1]);
+        Assert.DoesNotContain(result, c => c.Nome == "Acessórios");
+
+        await admin.ExcluirCategoriaAsync(id);
+        Assert.DoesNotContain(await categorias.ListarAsync(), c => c.Id == id);
     }
 
     [Theory]
@@ -103,7 +127,7 @@ public sealed class CatalogCrudTests
         };
         foreach (var data in invalid)
             await Assert.ThrowsAsync<CatalogoAdminException>(() => admin.SalvarProdutoAsync(null, data));
-        Assert.Equal(3, (await scope.ServiceProvider.GetRequiredService<ICatalogoService>().ListarAsync()).Count);
+        Assert.Equal(3, (await scope.ServiceProvider.GetRequiredService<ICatalogoService>().ListarProdutosAsync()).Count);
         await Assert.ThrowsAsync<CatalogoAdminException>(() => admin.SalvarProdutoAsync(9999, new("Produto", 10, "Descrição", 1, null)));
         await Assert.ThrowsAsync<CatalogoAdminException>(() => admin.SalvarCategoriaAsync(9999, "Nome"));
     }
@@ -175,7 +199,7 @@ public sealed class CatalogCrudTests
         AssertRedirect(response);
         Assert.Contains("upload=sucesso", response.Headers.Location!.ToString());
         using var scope = app.Services.CreateScope();
-        var product = Assert.Single(await scope.ServiceProvider.GetRequiredService<ICatalogoService>().ListarAsync(), p => p.Id == 1);
+        var product = Assert.Single(await scope.ServiceProvider.GetRequiredService<ICatalogoService>().ListarProdutosAsync(), p => p.Id == 1);
         Assert.StartsWith("https://storage.example.com/produtos/1/", product.UrlImagem);
         using var noToken = new MultipartFormDataContent();
         noToken.Add(new ByteArrayContent([1, 2, 3]), "arquivo", "file.png");

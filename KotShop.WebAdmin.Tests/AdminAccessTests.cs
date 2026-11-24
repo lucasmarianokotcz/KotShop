@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using KotShop.Application.Catalogo.Consultar;
 using KotShop.Application.Produtos.ConsultarCatalogo;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -147,7 +148,7 @@ public sealed class AdminAccessTests
 
     private sealed class FakeCatalogo : ICatalogoService
     {
-        public Task<IReadOnlyList<ProdutoResumo>> ListarAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<ProdutoResumo>>([new(1, "Produto de teste", 10, "Categoria", null)]);
+        public Task<IReadOnlyList<ProdutoResumo>> ListarProdutosAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ProdutoResumo>>([new(1, "Produto de teste", 10, "Categoria", null, 1)]);
     }
 }

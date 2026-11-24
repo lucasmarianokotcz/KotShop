@@ -1,16 +1,47 @@
 @inherits LayoutComponentBase
+@using KotShop.Application.Categorias
+@using KotShop.Application.Utilitarios
+@using Microsoft.AspNetCore.WebUtilities
+@inject ICategoriaService Categorias
+@inject ILogger<MainLayout> Logger
+@inject NavigationManager NavigationManager
 
 <header class="bg-emerald-700 text-white">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5">
         <a href="/" class="rounded text-3xl font-bold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">@AppInfo.Nome</a>
         <nav aria-label="Navegação principal">
-            <a href="/" class="rounded-lg px-4 py-2 text-sm font-semibold hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Produtos</a>
+            <a href="/produtos" class="rounded-lg px-4 py-2 text-sm font-semibold hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+                Produtos
+            </a>
         </nav>
     </div>
 </header>
 
+<section aria-label="Categorias" class="border-b border-slate-200 bg-white">
+    <div class="mx-auto max-w-6xl px-6 py-5">
+        @if (categorias.Count > 0)
+        {
+            <ul class="flex flex-wrap gap-4 text-sm text-slate-700">
+                @{ var categoriaAtual = CategoriaAtual; }
+                @foreach (var categoria in categorias)
+                {
+                    var slug = SlugHelper.Criar(categoria.Nome);
+                    var identificador = CategoriaSlug.PrecisaIdentificador(categoria, categorias) ? $"&categoriaId={categoria.Id}" : string.Empty;
+                    <li>
+                        <a href="@($"/produtos?categoria={slug}{identificador}")" class="@(categoria.Id == categoriaAtual?.Id ? "font-bold" : string.Empty)">
+                            @categoria.Nome
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</section>
+
 <div class="mx-auto max-w-6xl px-6 py-10">
-    @Body
+    <CascadingValue Value="categorias">
+        @Body
+    </CascadingValue>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -18,3 +49,50 @@
     <a href="." class="reload">Recarregar</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private IReadOnlyList<CategoriaResumo> categorias = [];
+
+    private CategoriaResumo? CategoriaAtual
+    {
+        get
+        {
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            if (!uri.AbsolutePath.EndsWith("/produtos", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var query = QueryHelpers.ParseQuery(uri.Query);
+            if (!query.TryGetValue("categoria", out var categoria))
+            {
+                return null;
+            }
+
+            long? id = null;
+            if (query.TryGetValue("categoriaId", out var valorId))
+            {
+                if (!long.TryParse(valorId.ToString(), out var idEncontrado))
+                {
+                    return null;
+                }
+
+                id = idEncontrado;
+            }
+
+            return CategoriaSlug.Encontrar(categorias, categoria.ToString(), id);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            categorias = await Categorias.ListarAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Falha ao consultar categorias da vitrine.");
+        }
+    }
+}

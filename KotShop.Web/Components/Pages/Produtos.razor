@@ -1,0 +1,46 @@
+﻿@page "/produtos"
+@using KotShop.Application.Categorias
+@using KotShop.Application.Catalogo.Consultar
+@using KotShop.Application.Produtos.ConsultarCatalogo
+@using KotShop.Web.Features.Produtos
+@inject ICatalogoService Catalogo
+
+<TituloPagina Nome="Produtos" />
+
+<h3>@Titulo</h3>
+<ListaProdutos Produtos="ProdutosVisiveis" />
+
+@code {
+    private IReadOnlyList<ProdutoResumo> produtos = [];
+
+    [SupplyParameterFromQuery(Name = "categoria")]
+    public string? Categoria { get; set; }
+
+    [SupplyParameterFromQuery(Name = "categoriaId")]
+    public long? CategoriaId { get; set; }
+
+    [CascadingParameter]
+    public IReadOnlyList<CategoriaResumo> Categorias { get; set; } = [];
+
+    private CategoriaResumo? CategoriaSelecionada => CategoriaSlug.Encontrar(Categorias, Categoria ?? string.Empty, CategoriaId);
+
+    private IReadOnlyList<ProdutoResumo> ProdutosVisiveis => Categoria is null && CategoriaId is null
+        ? produtos
+        : CategoriaSelecionada is { } categoria
+            ? produtos.Where(produto => produto.CategoriaId == categoria.Id).ToList()
+            : [];
+
+    private string Titulo
+    {
+        get
+        {
+            var nome = CategoriaSelecionada?.Nome ?? Categoria;
+            return string.IsNullOrEmpty(nome) ? "Produtos" : $"Produtos - {nome}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        produtos = await Catalogo.ListarProdutosAsync();
+    }
+}

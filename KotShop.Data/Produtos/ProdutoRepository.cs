@@ -12,7 +12,7 @@ public sealed class ProdutoRepository(IDbContextFactory<CatalogoDbContext> facto
     {
         await using var db = await factory.CreateDbContextAsync(cancellationToken);
         return await db.Produtos.AsNoTracking().OrderBy(p => p.Id)
-            .Select(p => new ProdutoResumo(p.Id, p.Nome, p.Preco, p.Categoria.Nome, p.UrlImagem))
+            .Select(p => new ProdutoResumo(p.Id, p.Nome, p.Preco, p.Categoria.Nome, p.UrlImagem, p.CategoriaId))
             .ToListAsync(cancellationToken);
     }
 

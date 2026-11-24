@@ -1,6 +1,7 @@
 @page "/produtos"
 @attribute [Authorize(Policy = AdminAccess.Policy)]
 @using System.Globalization
+@using KotShop.Application.Catalogo.Consultar
 @using KotShop.Application.Produtos.ConsultarCatalogo
 @inject ICatalogoService Catalogo
 
@@ -39,7 +40,7 @@ else
     [Inject] private ILogger<Produtos> Logger { get; set; } = default!;
     protected override async Task OnInitializedAsync()
     {
-        try { produtos = await Catalogo.ListarAsync(); }
+        try { produtos = await Catalogo.ListarProdutosAsync(); }
         catch (Exception exception)
         {
             Logger.LogError(exception, "Falha ao consultar catálogo administrativo.");
