@@ -16,15 +16,12 @@
     [SupplyParameterFromQuery(Name = "categoria")]
     public string? Categoria { get; set; }
 
-    [SupplyParameterFromQuery(Name = "categoriaId")]
-    public long? CategoriaId { get; set; }
-
     [CascadingParameter]
     public IReadOnlyList<CategoriaResumo> Categorias { get; set; } = [];
 
-    private CategoriaResumo? CategoriaSelecionada => CategoriaSlug.Encontrar(Categorias, Categoria ?? string.Empty, CategoriaId);
+    private CategoriaResumo? CategoriaSelecionada => CategoriaSlug.Encontrar(Categorias, Categoria ?? string.Empty);
 
-    private IReadOnlyList<ProdutoResumo> ProdutosVisiveis => Categoria is null && CategoriaId is null
+    private IReadOnlyList<ProdutoResumo> ProdutosVisiveis => Categoria is null
         ? produtos
         : CategoriaSelecionada is { } categoria
             ? produtos.Where(produto => produto.CategoriaId == categoria.Id).ToList()

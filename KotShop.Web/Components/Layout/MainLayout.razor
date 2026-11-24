@@ -26,9 +26,8 @@
                 @foreach (var categoria in categorias)
                 {
                     var slug = SlugHelper.Criar(categoria.Nome);
-                    var identificador = CategoriaSlug.PrecisaIdentificador(categoria, categorias) ? $"&categoriaId={categoria.Id}" : string.Empty;
                     <li>
-                        <a href="@($"/produtos?categoria={slug}{identificador}")" class="@(categoria.Id == categoriaAtual?.Id ? "font-bold" : string.Empty)">
+                        <a href="@($"/produtos?categoria={slug}")" class="@(categoria.Id == categoriaAtual?.Id ? "font-bold" : string.Empty)">
                             @categoria.Nome
                         </a>
                     </li>
@@ -69,18 +68,7 @@
                 return null;
             }
 
-            long? id = null;
-            if (query.TryGetValue("categoriaId", out var valorId))
-            {
-                if (!long.TryParse(valorId.ToString(), out var idEncontrado))
-                {
-                    return null;
-                }
-
-                id = idEncontrado;
-            }
-
-            return CategoriaSlug.Encontrar(categorias, categoria.ToString(), id);
+            return CategoriaSlug.Encontrar(categorias, categoria.ToString());
         }
     }
 
